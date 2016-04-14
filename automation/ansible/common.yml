@@ -1,0 +1,31 @@
+---
+
+- hosts:
+    - "meta_environment_name_{{ environment_name }}"
+  become: true
+  become_user: root
+  roles:
+    - role: yatesr.timezone
+      when: ansible_system == 'Linux'
+
+    - role: geerlingguy.ntp
+      when: ansible_system == 'Linux'
+
+    - role: geerlingguy.git
+      when: ansible_system == 'Linux'
+
+    - role: common
+      tags:
+        - common
+
+#    - role: savagegus.consul
+#      when: ansible_system == 'Linux'
+#      consul_version: 0.6.4
+#      consul_is_ui: false
+#      consul_is_server: false
+#      consul_bootstrap: false
+#      consul_bind_address: "0.0.0.0"
+#      consul_client_address_bind: false
+#      consul_install_nginx: false
+#      consul_install_nginx_config: false
+#      consul_enable_nginx_config: false

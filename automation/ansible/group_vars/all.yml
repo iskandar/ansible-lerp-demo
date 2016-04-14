@@ -1,0 +1,6 @@
+---
+# NTP settings
+# See https://galaxy.ansible.com/geerlingguy/ntp/
+ntp_timezone: UTC
+timezone: UTC
+ansible_user: root

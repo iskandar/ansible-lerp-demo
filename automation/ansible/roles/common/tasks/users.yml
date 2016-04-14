@@ -1,0 +1,10 @@
+
+- name: Add user 'iskandar'
+  user: name=iskandar groups=adm,sudo state=present
+  register: add_user
+
+- name: Add Iskandar's SSH keys
+  authorized_key: user=iskandar key=https://github.com/iskandar.keys state=present
+
+- name: Add Iskandar's SSH keys to root user
+  authorized_key: user=root key=https://github.com/iskandar.keys state=present

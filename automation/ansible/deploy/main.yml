@@ -1,0 +1,112 @@
+---
+
+# ansible-playbook deploy/main.yml -e environment_name=stg -v
+
+- name: Gather all facts
+  gather_facts: true
+  hosts:
+    - "meta_environment_name_{{ environment_name }}"
+
+- name: Deploy Web nodes
+  gather_facts: false
+  hosts:
+    - "meta_role_web:&meta_environment_name_{{ environment_name }}"
+  become: true
+  become_user: root
+  serial: 1
+  vars:
+    environment_name: "BOGUS"
+  vars_files:
+    - "../defaults/main.yml"
+  tags:
+    - rackspace
+
+  pre_tasks:
+    # This runs for each HOST
+    - name: Create/Get Load Balancer
+      rax_clb:
+        state: present
+        name: "{{ environment_name }}-lb"
+        port: 80
+        protocol: HTTP
+        type: PUBLIC
+        algorithm: ROUND_ROBIN
+        region: "{{ rs_region }}"
+      delegate_to: localhost
+      become: false
+      register: lb
+#    - debug: var=lb
+#    - debug: var=lb.balancer.nodes
+
+    - set_fact:
+        lb_nodes: "{{ lb.balancer.nodes }}"
+        lb_id: "{{ lb.balancer.id | int }}"
+#    - debug: var=lb_id
+#    - debug: var=lb_nodes
+
+    - name: Get Rackspace facts about servers
+      become: false
+      local_action:
+        module: rax_facts
+        name: "{{ inventory_hostname }}"
+        region: "{{ rs_region }}"
+#    - debug: var=rax_networks.private
+
+    - name: Get the current server's node id
+      set_fact:
+        private_ip: "{{ rax_addresses.private[0].addr }}"
+        # Some horrible gymnastics to get the node ID
+        node_id: "{{ lb_nodes | selectattr('address', 'equalto', rax_addresses.private[0].addr) | map(attribute='id') | list | first | int }}"
+
+    - debug: msg="Deploying to node {{ inventory_hostname }} / {{ private_ip }} / {{ node_id }}"
+
+    - name: Drain connections for this node
+      become: false
+      local_action:
+        module: rax_clb_nodes
+        load_balancer_id: "{{ lb_id }}"
+        node_id: "{{ node_id }}"
+        condition: draining
+        wait: yes
+
+    - pause: seconds=5
+
+    - name: Remove node from LB
+      become: false
+      local_action:
+        module: rax_clb_nodes
+        load_balancer_id: "{{ lb_id }}"
+        node_id: "{{ node_id }}"
+        state: absent
+        wait: yes
+
+  tasks:
+
+    - name: Copy deploy directory
+      copy: src=dist/ dest=/app/ owner=root group=root mode=644 backup=yes
+      register: copy
+
+    - name: Restart PHP-FPM
+      service: name=php5-fpm state=restarted
+      when: copy.changed
+
+  post_tasks:
+
+    - name: Wait for PHP-FPM
+      wait_for: port=9000 delay=1 timeout=120
+
+    - name: Wait for HTTP
+      wait_for: port=80 delay=1 timeout=120
+
+    - name: Add node back into LB
+      become: false
+      local_action:
+        module: rax_clb_nodes
+        load_balancer_id: "{{ lb_id }}"
+        address: "{{ private_ip }}"
+        port: 80
+        condition: enabled
+        state: present
+        wait: yes
+
+    - debug: msg="Done with node {{ inventory_hostname }} / {{ private_ip }} / {{ node_id }}"

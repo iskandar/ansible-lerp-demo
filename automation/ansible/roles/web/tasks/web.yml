@@ -1,0 +1,13 @@
+---
+
+- name: create default app directory
+  file: state=directory recurse=yes path=/app/public
+
+- name: install placeholder index
+  template: src=index.php.j2 dest=/app/public/index.php
+
+#- debug: var=groups['meta_role_web:meta_environment_name_prd']
+- debug: var=web_nodes
+
+- name: install dynamic config
+  template: src=config.php.j2 dest=/app/public/config.php

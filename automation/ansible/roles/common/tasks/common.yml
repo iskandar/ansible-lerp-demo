@@ -1,0 +1,36 @@
+---
+
+- include: users.yml
+
+#- include: dns.yml
+
+#- include: hosts.yml
+
+#- include: hardening.yml
+
+#- include: logrotate.yml
+
+#- include: sysctl.yml
+
+- name: Ensure common packages are installed.
+  apt:
+    name: "{{ item }}"
+    state: installed
+  with_items:
+    - jq
+    - curl
+    - wget
+
+# An example of how to use 'Local Facts'
+- name: create directory for ansible custom facts
+  file: state=directory recurse=yes path=/etc/ansible/facts.d
+
+- name: install custom fact script
+  template: src=local.fact dest=/etc/ansible/facts.d mode=0755
+  register: local_fact
+
+- name: reload local facts
+  setup: filter=ansible_local
+  when: local_fact.changed
+
+#- debug: var=ansible_local

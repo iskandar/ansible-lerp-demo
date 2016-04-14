@@ -1,0 +1,9 @@
+---
+# Default key pair for Rackspace Public Cloud servers
+rs_key_name: "iskandar-mbp"
+
+# Default image ID Rackspace Public Cloud servers
+rs_image_id: "bb02b1a3-bc77-4d17-ab5b-421d89850fca" # Ubuntu 14.04 LTS PVHVM
+
+
+rs_region: "LON"

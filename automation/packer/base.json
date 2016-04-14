@@ -1,0 +1,31 @@
+{
+  "variables": {
+    "aws_region": "{{env `AWS_DEFAULT_REGION`}}",
+    "ami_name": "demo-base"
+  },
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "region": "{{ user `aws_region`}}",
+      "source_ami": "ami-6c14310f",
+      "instance_type": "t2.micro",
+      "ssh_username": "ubuntu",
+      "ami_name": "{{ user `ami_name`}}-{{timestamp}}",
+      "ami_description": "A demo FAWS AMI",
+      "force_deregister": true,
+      "ami_users": [
+        "237295946285",
+        "164781344230"
+      ],
+      "ami_regions": [
+        "eu-central-1"
+      ]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "script": "base.sh"
+    }
+  ]
+}

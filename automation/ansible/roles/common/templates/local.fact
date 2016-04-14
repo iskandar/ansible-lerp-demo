@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# An example 'Local Fact' script
+
+cat << EOF
+{
+  "FOO": "value",
+  "IMPORTANT_VALUE": "{{ inventory_hostname }}"
+}
+EOF

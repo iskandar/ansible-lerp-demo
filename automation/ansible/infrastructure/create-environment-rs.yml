@@ -1,0 +1,156 @@
+
+- name: Build a Rackspace Public Cloud environment
+  gather_facts: false
+  hosts: localhost
+  connection: local
+  vars:
+    environment_name: "demo-x"
+  vars_files:
+    - "../defaults/main.yml"
+  tags:
+    - rackspace
+  tasks:
+    - name: Create/Get Queue
+      local_action:
+        module: rax_queue
+        name: "{{ environment_name }}-queue"
+        region: "{{ rs_region }}"
+        state: present
+      register: queue
+
+    - name: Create/Get Proxy Server
+      local_action:
+        module: rax
+        name: "{{ environment_name }}-proxy"
+        config_drive: yes
+        flavor: performance1-1
+        image: "{{ rs_image_id }}"
+        key_name: "{{ rs_key_name }}"
+        region: "{{ rs_region }}"
+        wait: no
+        state: present
+        networks:
+          - private
+          - public
+        meta:
+          role: "proxy"
+          environment_name: "{{ environment_name }}"
+      register: proxy_server
+
+    - name: Create/Get Data Server
+      local_action:
+        module: rax
+        name: "{{ environment_name }}-data"
+        config_drive: yes
+        flavor: performance1-1
+        image: "{{ rs_image_id }}"
+        key_name: "{{ rs_key_name }}"
+        region: "{{ rs_region }}"
+        wait: no
+        state: present
+        networks:
+          - private
+          - public
+        meta:
+          role: "data"
+          environment_name: "{{ environment_name }}"
+      register: data_server
+
+    - debug: var=data_server
+
+    - name: Create/Get Load Balancer
+      rax_clb:
+        state: present
+        name: "{{ environment_name }}-lb"
+        port: 80
+        protocol: HTTP
+        type: PUBLIC
+        algorithm: ROUND_ROBIN
+        timeout: 30
+        region: "{{ rs_region }}"
+        wait: yes
+        meta:
+          environment_name: "{{ environment_name }}"
+      register: lb
+
+#    - debug: var=lb
+
+    - name: Create/Get Web Scaling Group
+      rax_scaling_group:
+        state: present
+        name: "{{ environment_name }}-web-sg"
+        region: "{{ rs_region }}"
+        cooldown: 59
+        flavor: performance1-1
+        image: "{{ rs_image_id }}"
+        config_drive: yes
+        key_name: "{{ rs_key_name }}"
+        server_name: "{{ environment_name }}-web"
+        min_entities: 1
+        max_entities: 8
+        wait: yes
+        meta:
+          role: "web"
+          environment_name: "{{ environment_name }}"
+        loadbalancers:
+          - id: "{{ lb.balancer.id }}"
+            port: 80
+      register: web_asg
+
+    - name: Create/Get Worker Scaling Group
+      rax_scaling_group:
+        state: present
+        name: "{{ environment_name }}-wrk-sg"
+        region: "{{ rs_region }}"
+        cooldown: 59
+        flavor: performance1-1
+        image: "{{ rs_image_id }}"
+        config_drive: yes
+        key_name: "{{ rs_key_name }}"
+        server_name: "{{ environment_name }}-wrk"
+        min_entities: 1
+        max_entities: 8
+        wait: yes
+        meta:
+          role: "worker"
+          environment_name: "{{ environment_name }}"
+      register: wrk_asg
+#    - debug: var=asg
+
+    # This will create/update Scaling Polices - but will NOT create any Webhooks, which is annoying
+    - name: Create/Get Scaling Policies 0
+      rax_scaling_policy:
+        region: "{{ rs_region }}"
+        cooldown: 59
+        desired_capacity: 0
+        name: Scale to 0 - webhook
+        policy_type: webhook
+        scaling_group: "{{ web_asg.autoscale_group.name }}"
+
+    - name: Create/Get Scaling Policies 1
+      rax_scaling_policy:
+        region: "{{ rs_region }}"
+        cooldown: 59
+        desired_capacity: 1
+        name: Scale to 1 - webhook
+        policy_type: webhook
+        scaling_group: "{{ web_asg.autoscale_group.name }}"
+
+    - name: Create/Get Scaling Policies 2
+      rax_scaling_policy:
+        region: "{{ rs_region }}"
+        cooldown: 59
+        desired_capacity: 2
+        name: Scale to 2 - webhook
+        policy_type: webhook
+        scaling_group: "{{ web_asg.autoscale_group.name }}"
+      register: scale_to_2_webhook
+
+    - name: Create/Get Scaling Policies 4
+      rax_scaling_policy:
+        region: "{{ rs_region }}"
+        cooldown: 59
+        desired_capacity: 4
+        name: Scale to 4 - webhook
+        policy_type: webhook
+        scaling_group: "{{ web_asg.autoscale_group.name }}"

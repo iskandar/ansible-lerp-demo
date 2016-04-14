@@ -1,0 +1,15 @@
+---
+
+- hosts:
+    - "meta_role_worker:&meta_environment_name_{{ environment_name }}"
+  become: true
+  become_user: root
+  roles:
+    - role: worker
+
+    - role: geerlingguy.nodejs
+      when: ansible_system == 'Linux'
+      nodejs_version: "4.x"
+      nodejs_npm_global_packages:
+        - name: npm
+          version: "3.8.x"

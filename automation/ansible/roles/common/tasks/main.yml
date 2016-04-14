@@ -1,0 +1,7 @@
+---
+- include: common.yml
+  when: ansible_system == 'Linux'
+
+# Windows support isn't great, sadly
+#- include: common-windows.yml
+#  when: ansible_system == 'Windows'

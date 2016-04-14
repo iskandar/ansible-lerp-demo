@@ -1,0 +1,55 @@
+
+##
+#
+#
+##
+
+
+web:
+  build: .
+  links:
+    - proxy
+    - redis
+    - consul
+  expose:
+    - "3000"
+  volumes:
+    - ${APP_DIR}:/app
+  working_dir: /app
+#  command: npm run-script start-controller
+  command: npm run-script mon-controller
+  environment:
+    VIRTUAL_HOST: autoscale-controller.${CONSUL_SEED}.xip.io
+    CONSUL_AGENT: ${CONSUL_AGENT} # We are NOT running consul agent on localhost inside our container
+
+worker:
+  build: .
+  links:
+    - redis
+    - consul
+    - controller
+  expose:
+    - "3000"
+  volumes:
+    - ${APP_DIR}:/app
+  working_dir: /app
+#  command: npm run-script start
+  command: npm run-script mon-worker
+  environment:
+    VIRTUAL_HOST: autoscale-lb.${CONSUL_SEED}.xip.io
+    CONSUL_AGENT: ${CONSUL_AGENT} # We are NOT running consul agent on localhost inside our container
+
+redis:
+  image: "redis:2.8"
+
+## You can use resque-web to view the jobs and workers, but you'll need to hardcode the command-line arguments below
+#resque-web:
+#  image: voycey/resque-web
+#  ports:
+#    - "5678:5678"
+#  links:
+#    - redis
+#  command: |
+#    -r "redis://xxxxxx/"
+#    -N as-demo
+#    /resque-web.rb

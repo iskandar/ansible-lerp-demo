@@ -1,0 +1,41 @@
+<?php
+
+$hosts = [
+    'data'    => [ ],
+    'proxy'   => [ ],
+    'worker'  => [ ],
+    'web'     => [ ],
+];
+
+{% for host in data_hosts %}
+$allData = <<<EOF
+{{ hostvars[host] | to_nice_json }}
+EOF;
+$hosts['data']['{{ host }}'] = json_decode($allData, true);
+{% endfor %}
+
+{% for host in proxy_hosts %}
+$allData = <<<EOF
+{{ hostvars[host] | to_nice_json }}
+EOF;
+$hosts['proxy']['{{ host }}'] = json_decode($allData, true);
+{% endfor %}
+
+{% for host in worker_hosts %}
+$allData = <<<EOF
+{{ hostvars[host] | to_nice_json }}
+EOF;
+$hosts['worker']['{{ host }}'] = json_decode($allData, true);
+{% endfor %}
+
+{% for host in web_hosts %}
+$allData = <<<EOF
+{{ hostvars[host] | to_nice_json }}
+EOF;
+$hosts['web']['{{ host }}'] = json_decode($allData, true);
+{% endfor %}
+
+return [
+    'hostname' => gethostname(),
+    'hosts'    => $hosts,
+];

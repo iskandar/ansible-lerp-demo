@@ -1,0 +1,10 @@
+<?php
+
+echo "<h1>Provision Success!</h1>";
+
+$CONFIG = require_once 'config.php';
+
+// header('Content-type: text/json');
+echo "<pre>"; echo json_encode($CONFIG, JSON_PRETTY_PRINT); echo "</pre>";
+
+phpinfo();

@@ -1,0 +1,25 @@
+---
+
+- hosts:
+    - "meta_role_data:&meta_environment_name_{{ environment_name }}"
+  become: true
+  become_user: root
+  roles:
+    - role: data
+
+    - role: geerlingguy.redis
+      when: ansible_system == 'Linux'
+      redis_bind_interface: 0.0.0.0
+
+#    - role: savagegus.consul
+#      when: ansible_system == 'Linux'
+#      consul_version: 0.6.4
+#      consul_is_ui: true
+#      consul_is_server: true
+#      consul_bootstrap: true
+#      consul_bind_address: "0.0.0.0"
+#      consul_client_address_bind: true
+#      consul_ui_server_port: 8400
+#      consul_install_nginx: false
+#      consul_install_nginx_config: false
+#      consul_enable_nginx_config: false

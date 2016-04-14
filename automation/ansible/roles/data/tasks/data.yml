@@ -1,0 +1,4 @@
+---
+
+- name: template config file
+  template: src=conf.j2 dest=/tmp/web.conf

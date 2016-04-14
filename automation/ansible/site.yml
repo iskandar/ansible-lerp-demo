@@ -1,0 +1,41 @@
+---
+
+- name: Load variables
+  hosts:
+    - "meta_environment_name_{{ environment_name }}"
+  tags:
+    - always
+  vars:
+    # You MUST set an environment_name value somewhere
+    environment_name: "BOGUS"
+  vars_files:
+    - "defaults/main.yml"
+  tasks:
+    - set_fact:
+        # We have to jump through some hoops to ensure we have the correct set of hosts for templating
+        web_hosts:    "{{ groups['meta_role_web']    | intersect(groups['meta_environment_name_' + environment_name]) }}"
+        worker_hosts: "{{ groups['meta_role_worker'] | intersect(groups['meta_environment_name_' + environment_name]) }}"
+        data_hosts:   "{{ groups['meta_role_data']   | intersect(groups['meta_environment_name_' + environment_name]) }}"
+        proxy_hosts:  "{{ groups['meta_role_proxy']  | intersect(groups['meta_environment_name_' + environment_name]) }}"
+#    - debug: var=groups['meta_role_web']
+#    - debug: var=web_hosts
+
+- include: common.yml
+  tags:
+    - common
+
+- include: data.yml
+  tags:
+    - data
+
+- include: proxy.yml
+  tags:
+    - proxy
+
+- include: web.yml
+  tags:
+    - web
+
+- include: worker.yml
+  tags:
+    - worker
